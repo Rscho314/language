@@ -1,0 +1,40 @@
+#+TITLE: Outline and ideas
+
+* ROADMAP
+** write Scheme interpreter in Racket
+** write Forth interpreter in Racket
+** Rewrite both interpreters in Rosette
+** Prove syntax and semantics
+*** equal to defining isomorphism between stack and tree eval models
+** write new language interpreter in Rosette
+
+* FEATURES
+** for *scientific applications*
+** simple code, complex types
+** mix stack and tree eval model (scheme/forth mix)
+** REPL for both code and types
+** formally proven correct syntax and semantics
+** homoiconic with hygienic macros
+** purely *relational*
+** strong, static gradual advanced type system
+** parallelism/concurrency
+
+* TOOLS 
+** Racket/Rosette (Z3 can handle floats, not minikanren)
+
+* IMPLEMENTATION
+** focus on a single feature at a time
+** type inference
+
+* NICE IDEAS
+** tacit programming (no naming of local vars = Forth)
+** expressions are represented as both tree and stack
+** separation of logic and types in paired files
+*** one file with code resembling scheme
+*** paired file with only types listed in same syntax
+*** relational: paired files are checked for consistency
+**** change in code file can change type file
+**** change in type file is checked for consistency against code
+** Girard isomorphism, see Djinn language
+** Protorepl
+** IDE with syntactic and semantic metadata (ex: colouring)
