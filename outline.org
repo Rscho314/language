@@ -1,40 +1,42 @@
 #+TITLE: Outline and ideas
 
-* ROADMAP
-** write Scheme interpreter in Racket
-** write Forth interpreter in Racket
-** Rewrite both interpreters in Rosette
-** Prove syntax and semantics
-*** equal to defining isomorphism between stack and tree eval models
-** write new language interpreter in Rosette
+* ZEN OF THE NEW THING (IN DECEASING ORDER OF IMPORTANCE)
+  * Science is better than industry :: focus on data analysis, math & numeric computation
+  * Simple is better than complex :: Scheme is the simplest
+  * Interactive is better than static :: Common Lisp REPL with running program redefinition
+  * Recycling is better than building anew :: easy FFI, steal as many libs as possible from other platforms
+  * Extensible is better than rigid :: hygienic macro system
+  * Fast is better than slow :: compile efficiently
 
-* FEATURES
-** for *scientific applications*
-** simple code, complex types
-** mix stack and tree eval model (scheme/forth mix)
-** REPL for both code and types
-** formally proven correct syntax and semantics
-** homoiconic with hygienic macros
-** purely *relational*
-** strong, static gradual advanced type system
-** parallelism/concurrency
+* ROADMAP
+  1) Write R7RS Scheme interpreter
+  2) Prove interpreter
+  3) Write JIT, prove if possible
+  4) Write Nanopass comipler, prove if possible
+  6) Make backends and compatbility layers, 1st LLVM via C
+  7) Iterate
 
 * TOOLS 
 ** Racket/Rosette (Z3 can handle floats, not minikanren)
-
-* IMPLEMENTATION
-** focus on a single feature at a time
-** type inference
+** Nanopass
 
 * NICE IDEAS
-** tacit programming (no naming of local vars = Forth)
-** expressions are represented as both tree and stack
-** separation of logic and types in paired files
+** REPL
+*** Protorepl
+*** REPL for both code and types
+** UX
+*** IDE with syntactic and *semantic* metadata (ex: colouring)
+*** Barliman (Will Byrd)
+** Typing
+*** gradual typing
+*** inference
+*** separation of logic and types in paired files
 *** one file with code resembling scheme
 *** paired file with only types listed in same syntax
 *** relational: paired files are checked for consistency
 **** change in code file can change type file
 **** change in type file is checked for consistency against code
-** Girard isomorphism, see Djinn language
-** Protorepl
-** IDE with syntactic and semantic metadata (ex: colouring)
+*** Girard isomorphism, see Djinn language
+** Standard libs
+*** microkanren
+** Paralellism :: what paradigm/lib? 
