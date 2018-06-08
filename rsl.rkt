@@ -13,23 +13,26 @@
 (define (unget port)
   (file-position port (- (file-position port) 1)))
 
-;TODO What about the 2nd token line std p.62
+; this global counts parentheses
+; used in lexing of #; comments
+(define parens-count 0)
+
 (define-tokens value-tokens
   (IDENTIFIER
    BOOLEAN
    NUMBER
    CHARACTER
-   STRING
-   SYMBOL))
+   STRING))
 
-(define-empty-tokens marker-tokens
-  (LP CP  ;( )
+(define-empty-tokens delimiter-tokens
+  (OP CP  ;( )
    OV     ;#(
    OB     ;u8(
    Q      ;'
    QQ     ;`
    UQ     ;,
    UQS    ;,@
+   D      ;.
    EOF))
 
 ; this respects the standard scrupulously
@@ -38,42 +41,51 @@
 ; it also does not include the unicode standard p.61
 (define-lex-abbrevs
   ; std 7.1.1 Lexical structure
-  [intraline-whitespace (:or " " "\t")]
-  [line-ending (:or "\n" "\r\n")]
-  [whitespace (:or intraline-whitespace line-ending)]
+  [token (:or identifier boolean number character string
+              #\( #\) "#(" "#u8(" #\' #\` #\, ",@" #\.)]
   [delimiter (:or whitespace #\| #\( #\) #\" #\; )]
-  [comment-start (:or #\; "#|" "#;")] ; not used currently
+  [intraline-whitespace (:or " " "\t")]
+  [whitespace (:or intraline-whitespace line-ending)]
+  [vertical-line #\|]
+  [line-ending (:or "\n" "\r\n" "\r")]
+  [comment (:or (:: #\; (:* (:- any-char line-ending)))
+                nested-comment
+                ;(:: "#;" intertoken-space datum)
+                )]
+  [nested-comment (:: "#|" comment-text "|#")]
+  ; [nested-comment (:: "#|" comment-text (:* comment-cont) "|#")] cycle, not possible
+  [comment-text (:* (:- any-char "#|" "|#"))]
+  ;[comment-cont (:: (:: "#|" comment-text (:* comment-cont) "|#") comment-text)] cycle
   [directive (:or "#!fold-case" "#!no-fold-case")]
-  [atmosphere (:or whitespace comment-start directive)]
-  [intertoken-space (:* atmosphere)]
+  ;[atmosphere (:or whitespace comment directive)]
+  ;[intertoken-space (:* atmosphere)]
+  [identifier (:or (:: initial (:* subsequent))
+                   (:: vertical-line (:* symbol-element) vertical-line)
+                   peculiar-identifier)]
+  [initial (:or letter special-initial)]
+  [letter (:or (:/ #\a #\z) (:/ #\A #\Z) )]
   [special-initial (:or #\! #\$ #\% #\& #\* #\/ #\: #\< #\=
                         #\> #\? #\@ #\^ #\_ #\~)]
-  [letter (:or (:/ #\a #\z) (:/ #\A #\Z) )]
-  [initial (:or letter special-initial)]
+  [subsequent (:or initial digit special-subsequent)]
   [digit (:/ #\0 #\9)]
+  [hex-digit  (:or digit (:/ #\a #\f))]
   [explicit-sign (:or #\+ #\-)]
   [special-subsequent (:or explicit-sign #\. #\@)]
-  [subsequent (:or initial digit special-subsequent)]
-  [hex-digit  (:or digit (:/ #\a #\f))]
-  [hex-scalar-value (:+ hex-digit)]
   [inline-hex-escape (:: "\\x" hex-scalar-value #\;)]
+  [hex-scalar-value (:+ hex-digit)]
   [mnemonic-escape (:or "\\a" "\\b" "\\t" "\\n" "\\r")]
+  [peculiar-identifier (:&
+                        (:- "+i." "-i" infnan)
+                        (:or explicit-sign
+                             (:: explicit-sign sign-subsequent (:* subsequent))
+                             (:: explicit-sign #\. dot-subsequent (:* subsequent))
+                             (:: #\. dot-subsequent (:* subsequent))))]
+  [dot-subsequent (:or sign-subsequent #\.)]
+  [sign-subsequent (:or initial explicit-sign #\@)]
   [symbol-element (:or (:& (:~ #\|) (:~ #\\))
                        inline-hex-escape
                        mnemonic-escape
                        "\\|")] ; this line ambiguous in std p.62
-  [sign-subsequent (:or initial explicit-sign #\@)]
-  [dot-subsequent (:or sign-subsequent #\.)]
-  [infnan (:or "+inf.0" "-inf.0" "+nan.0" "-nan.0")]
-  [peculiar-identifier (:&
-                        (:- "+i." "-i" infnan)
-                        (:or explicit-sign
-                            (:: explicit-sign sign-subsequent (:* subsequent))
-                            (:: explicit-sign #\. dot-subsequent (:* subsequent))
-                            (:: #\. dot-subsequent (:* subsequent))))]
-  [identifier (:or (:: initial (:* subsequent))
-                   (:: #\| (:* symbol-element) #\|)
-                   peculiar-identifier)]
   [boolean (:or "#t" "#f" "#true" "#false")]
   [character (:: "#\\" (:or any-char character-name (:: #\x hex-scalar-value)))]
   [character-name (:or "alarm" "backspace" "delete" "escape" "newline" "null"
@@ -93,6 +105,7 @@
          (:: #\1 (:/ #\0 #\9) (:/ #\0 #\9))
          (:: #\2 (:/ #\0 #\4) (:/ #\0 #\9))
          (:: #\2 #\5 (:/ #\0 #\5)))]
+  
   [number (:or num2 num8 num10 num16)]
   [num2 (:: prefix2 complex2)]
   [complex2 (:or real2
@@ -104,7 +117,7 @@
                  (:: real2 infnan (:or #\i #\I))
                  (:: #\+ ureal2 (:or #\i #\I))
                  (:: #\- ureal2 (:or #\i #\I))
-                 (:: ifnan (:or #\i #\I))
+                 (:: infnan (:or #\i #\I))
                  (:: #\+ (:or #\i #\I))
                  (:: #\- (:or #\i #\I)))]
   [real2 (:or (:: sign ureal2) infnan)]
@@ -124,7 +137,7 @@
                  (:: real8 infnan (:or #\i #\I))
                  (:: #\+ ureal8 (:or #\i #\I))
                  (:: #\- ureal8 (:or #\i #\I))
-                 (:: ifnan (:or #\i #\I))
+                 (:: infnan (:or #\i #\I))
                  (:: #\+ (:or #\i #\I))
                  (:: #\- (:or #\i #\I)))]
   [real8 (:or (:: sign ureal8) infnan)]
@@ -144,7 +157,7 @@
                  (:: real10 infnan (:or #\i #\I))
                  (:: #\+ ureal10 (:or #\i #\I))
                  (:: #\- ureal10 (:or #\i #\I))
-                 (:: ifnan (:or #\i #\I))
+                 (:: infnan (:or #\i #\I))
                  (:: #\+ (:or #\i #\I))
                  (:: #\- (:or #\i #\I)))]
   [real10 (:or (:: sign ureal10) infnan)]
@@ -168,7 +181,7 @@
                  (:: real16 infnan (:or #\i #\I))
                  (:: #\+ ureal16 (:or #\i #\I))
                  (:: #\- ureal16 (:or #\i #\I))
-                 (:: ifnan (:or #\i #\I))
+                 (:: infnan (:or #\i #\I))
                  (:: #\+ (:or #\i #\I))
                  (:: #\- (:or #\i #\I)))]
   [real16 (:or (:: sign ureal16) infnan)]
@@ -177,7 +190,7 @@
   [uinteger16 (:+ digit16)]
   [prefix16 (:or (:: radix16 exactness)
                 (:: exactness radix16))]
-  
+  [infnan (:or "+inf.0" "-inf.0" "+nan.0" "-nan.0")]
   [suffix (:or empty (:: exponent-marker sign (:+ digit10)))]
   [exponent-marker (:or #\e #\E)]
   [sign (:or empty #\+ #\-)]
@@ -354,46 +367,50 @@
                             (:: #\( "and" (:* feature-requirement) #\) )
                             (:: #\( "or" (:* feature-requirement) #\) )
                             (:: #\( "not" (:* feature-requirement) #\) ))]
+  [empty ""]
 )
-  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; LEXERS
+
 (define R7RS-lexer
   (lexer
-   [whitespace
-    (R7RS-lexer input-port)]
-   [#\;
-    (line-comment-lexer input-port)]
-   ["#|"
-    (nested-comment-lexer input-port)]
-   ["#;"
-    (sexp-comment-lexer input-port)]
-   [directive
-    (directive-lexer input-port)]))
+   [(eof) '()]
+   ["#;" (sexp-comment-lexer input-port)]
+   [comment (R7RS-lexer input-port)]
+   [identifier (cons (token-IDENTIFIER lexeme) (R7RS-lexer input-port))]
+   [boolean (cons (token-BOOLEAN lexeme) (R7RS-lexer input-port))]
+   [number (cons (token-NUMBER lexeme) (R7RS-lexer input-port))]
+   [character (cons (token-CHARACTER lexeme) (R7RS-lexer input-port))]
+   [string (cons (token-STRING lexeme) (R7RS-lexer input-port))]
+   [#\( (cons (token-OP) (R7RS-lexer input-port))]
+   [#\) (cons (token-CP) (R7RS-lexer input-port))]
+   ["#(" (cons (token-OV) (R7RS-lexer input-port))]
+   ["#u8(" (cons (token-OB) (R7RS-lexer input-port))]
+   [#\' (cons (token-Q) (R7RS-lexer input-port))]
+   [#\` (cons (token-QQ) (R7RS-lexer input-port))]
+   [#\, (cons (token-UQ) (R7RS-lexer input-port))]
+   [",@" (cons (token-UQS) (R7RS-lexer input-port))]
+   [#\. (cons (token-D) (R7RS-lexer input-port))]
+   [whitespace (R7RS-lexer input-port)]
+   [directive (directive-lexer input-port)]))
 
-; choice between conditional lexer with stored unget
-; vs separate lexers (chosen here)
-(define line-comment-lexer 
+(define sexp-comment-lexer
   (lexer
-   [line-ending
-    (R7RS-lexer input-port)]
-   [any-char
-    (line-comment-lexer input-port)]))
-(define nested-comment-lexer 
-  (lexer
-   ["|#"
-    (R7RS-lexer input-port)]
-   [any-char
-    (nested-comment-lexer input-port)]))
-(define sexp-comment-lexer ; TODO not implemented 
-  (lexer
-   [line-ending
-    (R7RS-lexer input-port)]
-   [any-char
-    (sexp-comment-lexer input-port)]))
+   [#\(
+    (begin
+      (set! parens-count (add1 parens-count))
+      (sexp-comment-lexer input-port))]
+   [#\)
+    (begin
+      (set! parens-count (sub1 parens-count))
+      (if (= parens-count 0)
+          (R7RS-lexer input-port)
+          (sexp-comment-lexer input-port)))]
+   [(:~ #\( #\)) (sexp-comment-lexer input-port)]))
 
 (define directive-lexer
   (lexer
-   [delimiter
-    (R7RS-lexer input-port)] ; TODO not implemented
-   [(eof) 'EOF]
-   [any-char
-    (error "A directive must be followed by either a delimiter or EOF.")]))
+   [(eof) '()]
+   [whitespace (R7RS-lexer input-port)]
+   [any-char (error "Directives must be followed by a delimiter or EOF: " lexeme)]))
