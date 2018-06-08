@@ -278,6 +278,82 @@
                  (:: #\( "include-ci" (:+ string) #\)))]
 
   ; std 7.1.4 quasiquotations
+  [D (:+ (:/ #\1 #\9))]
+  [quasiquotation (:: quasiquotation1)]
+  [qq-template-0 expression]
+  ; the rest of this section can't be abbreviated
+  ; and has to be lexed directly, because D can take whatever value.
+
+  ; std 7.1.5 transformers
+  [transformer-spec (:or (:: #\( "syntax-rules" #\( (:* identifier) #\) (:* syntax-rule) #\))
+                         (:: #\( "syntax-rules" identifier #\( (:* identifier) #\) (:* syntax-rule) #\)))]
+  [syntax-rule (:: #\( pattern template #\))]
+  [pattern (:or pattern-identifier
+                underscore
+                (:: #\( (:* pattern) #\))
+                (:: #\( (:+ pattern) #\. pattern #\))
+                (:: #\( (:* pattern) pattern ellipsis (:* pattern) #\))
+                (:: #\( (:* pattern) pattern ellipsis (:* pattern) #\. pattern #\))
+                (:: "#(" (:* pattern) #\))
+                (:: "#(" (:* pattern) pattern ellipsis (:* pattern) #\))
+                pattern-datum)]
+  [pattern-datum (:or string character boolean number bytevector)]
+  [template (:or pattern-identifier
+                 (:: #\( (:* template-element) #\) )
+                 (:: #\( (:+ template-element) #\. template #\) )
+                 (:: "#(" (:*template-element) #\))
+                 template-datum)]
+  [template-element (:or template (:: template ellipsis))]
+  [template-datum pattern-datum]
+  [pattern-identifier (:& (:~ "...") identifier)]
+  [ellipsis (:or "..." identifier)]
+  [underscore (:: identifier #\_)]
+
+  ; std 7.1.6 programs and definitions
+  [program (:: (:+ import-declaration) (:+ command-or-definition))]
+  [command-or-definition (:or command definition
+                              (:: #\( "begin" (:+ command-or-definition) #\)))]
+  [definition (:or (:: #\( "define" identifier expression #\))
+                   (:: #\( "define" #\( identifier def-formals #\) body #\) )
+                   syntax-definition
+                   (:: #\( "define-values" formals body #\) )
+                   (:: #\( "define-record-type" identifier
+                       constructor identifier (:* field-spec) #\) )
+                   (:: #\( "begin" (:* definition) #\) ))]
+  [def-formals (:or (:* identifier)
+                    (:: (:* identifier) #\. identifier))]
+  [constructor (:: #\( identifier (:* field-name) #\))]
+  [field-spec (:or (:: #\( field-name accessor #\) )
+                   (:: #\( field-name accessor mutator #\) ))]
+  [field-name identifier]
+  [accessor identifier]
+  [mutator identifier]
+  [syntax-definition (:: #\( "define-syntax" keyword transformer-spec #\) )]
+
+  ; std 7.1.7 libraries
+  [library (:: #\( "define-library" library-name (:* library-declaration) #\) )]
+  [library-name (:: #\( (:+ library-name-part) #\) )]
+  [library-name-part (:or identifier uinteger10)]
+  [library-declaration (:or (:: #\( "export" (:* export-spec) #\) )
+                            import-declaration
+                            (:: #\( "begin" (:* command-or-definition) #\) )
+                            includer
+                            (:: #\( "include-library-declarations" (:+ string) #\) )
+                            (:: #\( "cond-expand" (:+ cond-expand-clause) #\) )
+                            (:: #\( "cond-expand" (:+ cond-expand-clause) #\)
+                                #\( "else" (:* library-declaration) #\) #\) ))]
+  [import-declaration (:: #\( "import" (:+ import-set) #\))]
+  [export-spec (:or identifier (:: #\( "rename" identifier identifier #\)))]
+  [import-set (:or library-name
+                   (:: #\( "only" import-set (:+ identifier) #\))
+                   (:: #\( "except" import-set (:+ identifier) #\))
+                   (:: #\( "prefix" import-set identifier #\))
+                   (:: #\( "rename" import-set (:+ #\( identifier identifier #\) ) #\) ))]
+  [cond-expand-clause (:: #\( feature-requirement (:* library-declaration) #\) )]
+  [feature-requirement (:or identifier library-name
+                            (:: #\( "and" (:* feature-requirement) #\) )
+                            (:: #\( "or" (:* feature-requirement) #\) )
+                            (:: #\( "not" (:* feature-requirement) #\) ))]
 )
   
 (define R7RS-lexer
