@@ -7,6 +7,10 @@
 (require parser-tools/lex
          (prefix-in : parser-tools/lex-sre))
 
+(provide R7RS-lexer
+         value-tokens
+         delimiter-tokens)
+
 ; this works only when reading from a file
 ; or when the port has been created with open-input-string
 ; does not work when reading from stdin
@@ -375,23 +379,23 @@
 
 (define R7RS-lexer
   (lexer
-   [(eof) '()]
+   [(eof) (token-EOF)]
    ["#;" (sexp-comment-lexer input-port)]
    [comment (R7RS-lexer input-port)]
-   [identifier (cons (token-IDENTIFIER lexeme) (R7RS-lexer input-port))]
-   [boolean (cons (token-BOOLEAN lexeme) (R7RS-lexer input-port))]
-   [number (cons (token-NUMBER lexeme) (R7RS-lexer input-port))]
-   [character (cons (token-CHARACTER lexeme) (R7RS-lexer input-port))]
-   [string (cons (token-STRING lexeme) (R7RS-lexer input-port))]
-   [#\( (cons (token-OP) (R7RS-lexer input-port))]
-   [#\) (cons (token-CP) (R7RS-lexer input-port))]
-   ["#(" (cons (token-OV) (R7RS-lexer input-port))]
-   ["#u8(" (cons (token-OB) (R7RS-lexer input-port))]
-   [#\' (cons (token-Q) (R7RS-lexer input-port))]
-   [#\` (cons (token-QQ) (R7RS-lexer input-port))]
-   [#\, (cons (token-UQ) (R7RS-lexer input-port))]
-   [",@" (cons (token-UQS) (R7RS-lexer input-port))]
-   [#\. (cons (token-D) (R7RS-lexer input-port))]
+   [identifier (token-IDENTIFIER lexeme)]
+   [boolean (token-BOOLEAN lexeme)]
+   [number (token-NUMBER lexeme)]
+   [character (token-CHARACTER lexeme)]
+   [string (token-STRING lexeme)]
+   [#\( (token-OP)]
+   [#\) (token-CP)]
+   ["#(" (token-OV)]
+   ["#u8(" (token-OB)]
+   [#\' (token-Q)]
+   [#\` (token-QQ)]
+   [#\, (token-UQ)]
+   [",@" (token-UQS)]
+   [#\. (token-D)]
    [whitespace (R7RS-lexer input-port)]
    [directive (directive-lexer input-port)]))
 
