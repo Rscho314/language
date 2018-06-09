@@ -1,7 +1,7 @@
 #+TITLE: Outline and ideas
 
 * ZEN OF THE NEW THING (IN DECEASING ORDER OF IMPORTANCE)
-  * Science is better than industry :: focus on data analysis, math & numeric computation
+  * Analytical is better than empirical :: formal proof and solvers from a to z
   * Simple is better than complex :: Scheme is the simplest
   * Interactive is better than static :: Common Lisp REPL with running program redefinition
   * Recycling is better than building anew :: easy FFI, steal as many libs as possible from other platforms
@@ -22,7 +22,8 @@
 
 * NICE IDEAS
 ** REPL
-*** Protorepl
+*** Redefinition of running programs (Common Lisp)
+*** Protorepl (Clojure)
 *** REPL for both code and types
 ** UX
 *** IDE with syntactic and *semantic* metadata (ex: colouring)
@@ -40,3 +41,5 @@
 ** Standard libs
 *** microkanren
 ** Paralellism :: what paradigm/lib? 
+** Debugging
+*** bissecting debugger (Mercury)

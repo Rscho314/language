@@ -13,3 +13,6 @@
                   (one-line))))))
     (one-line)))
 (R7RS-eval (open-input-string "hello"))
+(R7RS-eval (open-input-string "'1"))
+(R7RS-eval (open-input-string "'#f"))
+(R7RS-eval (open-input-string "'raoul"))
